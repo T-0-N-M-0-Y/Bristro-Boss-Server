@@ -174,12 +174,10 @@ async function run() {
       res.send(result)
     })
 
-
     app.post('/create-payment-intent', verifyJWT, async (req, res) => {
       const { price } = req.body;
       const amount = price * 100;
       console.log(price, amount);
-      
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
         currency: 'usd',
@@ -190,6 +188,17 @@ async function run() {
         clientSecret: paymentIntent.client_secret,
       });
     });
+
+    // Payment Collection 
+    const paymentCollection = client.db('bristroDB').collection('payments');
+
+     app.post('/payments', verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const  result = await paymentCollection.insertOne(payment);
+      const query = {_id: {$in: payment.cartItems.map(id => new ObjectId(id))}}
+      const deleteResult = await cartCollection.deleteMany(query)
+      res.send({result, deleteResult});
+     })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
